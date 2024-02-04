@@ -1,69 +1,53 @@
 #include <stdio.h>
 #include "stdlib.h"
 
-int row_count = 3, col_count = 3, player_count = 2, turns = 0, toggle = 0, max_match = 3;
-int **rows, **cols, **diag, **anti_diag;
+const unsigned char win_count = 8;
+unsigned short winning[] = {
+        7 << 6,
+        7 << 3,
+        7,
+        292,
+        146,
+        73,
+        273,
+        84
+};
+
+int row_count = 3, col_count = 3, toggle = 0;
 char player[2] = "XO";
 
-void printBoard(char (*board)[]);
-
-void init() {
-    rows = calloc(player_count, sizeof(int *));
-    cols = calloc(player_count, sizeof(int *));
-    diag = calloc(player_count, sizeof(int *));
-    anti_diag = calloc(player_count, sizeof(int *));
-
-    for (int i = 0; i < player_count; ++i) {
-        rows[i] = calloc(row_count, sizeof(int));
-        cols[i] = calloc(col_count, sizeof(int));
-        diag[i] = calloc(row_count > col_count ? col_count : row_count, sizeof(int));
-        anti_diag[i] = calloc(row_count > col_count ? col_count : row_count, sizeof(int));
-    }
-}
+void printBoard(const unsigned short board[]);
+char checkWinning(const unsigned short board[]);
 
 int main() {
-    init();
+    unsigned short board[2] = {0, 0};
 
-    char (*board)[col_count] = calloc(row_count * col_count, sizeof(*board));
-    if (board == NULL) {
-        printf("Not Enough Memory.");
-        exit(1);
-    }
-
-    int offset = 1;
-    for (int i = 0; i < (row_count * col_count); ++i) {
-        turns += !toggle;
-        int row = offset, col = offset;
-
+    unsigned char is_win = 0;
+    for (int i = 0, row, col, index, offset = 1; i < (row_count * col_count); ++i, toggle = !toggle) {
         do {
             printf("Player %c's turn. Enter the row (1-%d) and column (1-%d):\n", player[toggle], row_count, col_count);
             scanf("%d", &row);
             scanf("%d", &col);
-        } while (row > row_count || row < offset || col > col_count || col < offset ||
-                (board[row - offset][col - offset] != ' ' && board[row - offset][col - offset] != 0)) ;
+            row -= offset, col -= offset;
+            index = (row * row_count) + col;
+        } while (row >= row_count || row < 0 || col >= col_count || col < 0 ||
+                ((board[0] >> index) & 1) == 1 || ((board[1] >> index) & 1) == 1) ;
 
-        row = row - offset;
-        col = col - offset;
-        board[row][col] = player[toggle];
-        rows[toggle][row]++;
-        cols[toggle][col]++;
-        if (row == col) diag[toggle][0]++;
-        if (row + (col_count - 1) == col || row == col || col + (col_count - 1) == row) anti_diag[toggle][0]++;
-
+        board[toggle] = board[toggle] | (1 << ((row * row_count) + col));
         printBoard(board);
-
-        if (rows[toggle][row] == max_match || cols[toggle][col] == max_match ||
-            diag[toggle][0] == max_match || anti_diag[toggle][0] == max_match) {
+        if (checkWinning(board)) {
+            is_win = 1;
             break;
         }
-
-        toggle = !toggle;
     }
+
+    if (is_win) printf("Congratulations Player %c for winning!!!", player[toggle]);
+    else printf("Tie.");
 
     return 0;
 }
 
-void printBoard(char (*board)[col_count]) {
+void printBoard(const unsigned short board[]) {
     for (int i = 0; i < row_count; i++) {
 
         if (i != 0) {
@@ -77,8 +61,24 @@ void printBoard(char (*board)[col_count]) {
         for (int j = 0; j < col_count; j++) {
             if (j != 0) printf("|");
 
-            printf("%c", board[i][j]);
+            int index = (i * row_count) + j;
+            if (((board[0] >> index) & 1) == 0 &&
+                ((board[1] >> index) & 1) == 0) {
+                printf("%c", ' ');
+            } else {
+                printf("%c", player[((board[1] >> index) & 1)]);
+            }
         }
         printf("\n");
     }
+}
+
+char checkWinning(const unsigned short board[]) {
+    for (int i = 0; i < win_count; ++i) {
+        if (board[toggle] == winning[i]) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
