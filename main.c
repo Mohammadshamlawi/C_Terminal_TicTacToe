@@ -40,7 +40,7 @@ int main() {
         }
     }
 
-    if (is_win) printf("\nCongratulations!!! Player %c Wins!!!", PLAYERS[toggle]);
+    if (is_win) printf("\nCongratulations!!! Player %c Wins!!!\n", PLAYERS[toggle]);
     else printf("\nTie.");
 
     return 0;
